@@ -2,145 +2,182 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Document</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Balloons</title>
     <style>
-      canvas {
-        border: 10px solid #383954;
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1b2a4a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
       }
-      #game {
-        border: 5px solid #2b7ea3;
-        width: 620px;
-        height: 820px;
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #hud {
+        position: fixed;
+        top: 12px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 16px;
+        color: #fff;
+        font-size: 20px;
+        font-weight: 600;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        pointer-events: none;
+      }
+      #hud .pill {
+        background: rgba(0,0,0,0.25);
+        padding: 6px 14px;
+        border-radius: 999px;
+        backdrop-filter: blur(6px);
       }
     </style>
   </head>
   <body>
-    <div id="game">
-      <canvas id="canvas" width="600" height="800"></canvas>
+    <canvas id="canvas"></canvas>
+    <div id="hud">
+      <div class="pill">Score: <span id="score">0</span></div>
+      <div class="pill">Best: <span id="best">0</span></div>
     </div>
     <script>
-      function rand(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min; //Максимум и минимум включаются
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const bestEl = document.getElementById("best");
+
+      let w = 0, h = 0, dpr = 1;
+      function resize() {
+        dpr = window.devicePixelRatio || 1;
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
+      window.addEventListener("resize", resize);
+      resize();
 
-      var ctx = canvas.getContext("2d");
-      w = canvas.clientWidth;
-      h = canvas.clientHeight;
+      const rand = (min, max) => Math.random() * (max - min) + min;
+      const colors = ["green", "blue", "purp", "red", "yellow"];
+      const images = colors.map(c => { const i = new Image(); i.src = c + ".png"; return i; });
 
-      speed = 8;
-      var i_balloon = []
-      i_balloon[0] = new Image();
-      i_balloon[0].src = "green.png";
-      i_balloon[1] = new Image();
-      i_balloon[1].src = "blue.png";
-      i_balloon[2] = new Image();
-      i_balloon[2].src = "purp.png";
-      i_balloon[3] = new Image();
-      i_balloon[3].src = "red.png";
-      i_balloon[4] = new Image();
-      i_balloon[4].src = "yellow.png";
-
-
-      var sound = document.createElement('audio');
-      sound.src = 'sound.mp3';
+      const sound = new Audio("sound.mp3");
       sound.volume = 0.4;
-      mute = false;
 
+      let score = 0;
+      let best = +localStorage.getItem("balloon_best") || 0;
+      bestEl.textContent = best;
 
-      class ballon {
-        x;
-        y;
-        color;
-        is = true;
-        speed;
-        constructor(X, Y) {
-          this.x = X;
-          this.y = Y;
-          this.color = rand(0,4);
-          this.speed = rand(2,6)
-        }
+      const balloons = [];
+      const pops = [];
+
+      function balloonSize() {
+        return Math.max(60, Math.min(w, h) * 0.14);
       }
 
-      b = [];
-      b_count = 0;
-
-      //генерация новых шариков
-      function new_balloon() {
-        b[b_count] = new ballon(rand(0, 500), 800);
-        b_count++;
-        setTimeout(() => {
-          new_balloon();
-        }, rand(500, 2000));
+      function spawn() {
+        const size = balloonSize();
+        balloons.push({
+          x: rand(size / 2, w - size / 2),
+          y: h + size,
+          color: Math.floor(rand(0, 5)),
+          speed: Math.random() < 0.25 ? rand(380, 550) : rand(120, 240),
+          size,
+          sway: rand(0, Math.PI * 2),
+        });
+        setTimeout(spawn, rand(900, 2200));
       }
-      new_balloon();
+      spawn();
 
-      function step() {
-        //задний фон
-        ctx.fillStyle = "#304F6B";
+      function drawBackground() {
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, "#7ec8f5");
+        g.addColorStop(1, "#cfeaff");
+        ctx.fillStyle = g;
         ctx.fillRect(0, 0, w, h);
+      }
 
-        //рисование шарика
-        for (i = 0; i < b_count; i++) {
-            if(b[i] != undefined &&  b[i].is == true)
-                ctx.drawImage(i_balloon[b[i].color], b[i].x, b[i].y, 100, 120);
+      let last = performance.now();
+      function step(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+
+        drawBackground();
+
+        for (let i = balloons.length - 1; i >= 0; i--) {
+          const b = balloons[i];
+          b.y -= b.speed * dt;
+          b.sway += dt * 2;
+          const dx = Math.sin(b.sway) * 6;
+          const bw = b.size, bh = b.size * 1.2;
+          const img = images[b.color];
+          if (img.complete && img.naturalWidth) {
+            ctx.drawImage(img, b.x - bw / 2 + dx, b.y - bh / 2, bw, bh);
+          } else {
+            ctx.fillStyle = ["#6cc070", "#4aa3df", "#9b6cd6", "#e35d5d", "#f1c40f"][b.color];
+            ctx.beginPath();
+            ctx.ellipse(b.x + dx, b.y, bw / 2, bh / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (b.y < -bh) balloons.splice(i, 1);
         }
 
-        //движение шарика
-        for (i = 0; i < b_count; i++) {
-            if(b[i] != undefined){
-                b[i].y -= b[i].speed;
-
-                if(b[i].y < -120) {
-                    b[i].is = false;
-                    delete b[i]
-                }
-            }
-          
+        for (let i = pops.length - 1; i >= 0; i--) {
+          const p = pops[i];
+          p.t += dt;
+          const a = 1 - p.t / 0.4;
+          if (a <= 0) { pops.splice(i, 1); continue; }
+          ctx.strokeStyle = `rgba(255,255,255,${a})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r + p.t * 120, 0, Math.PI * 2);
+          ctx.stroke();
         }
 
         requestAnimationFrame(step);
       }
+      requestAnimationFrame(now => { last = now; step(now); });
 
-      step();
-
-      //нажатия мышкой
-      let offsetLeft = canvas.offsetLeft;
-      let offsetTop = canvas.offsetTop;
-      document.addEventListener("mouseup", mouseMoveHandler, false);
-      function mouseMoveHandler(e) {
-        var X = e.clientX - offsetLeft;
-        var Y = e.clientY - offsetTop;
-        X = (X / w) * w-10;
-        Y = (Y / h) * h-10;
-
-        for (i = 0; i < b_count; i++) {
-            if (b[i] != undefined && X > b[i].x && X < (b[i].x)+100 && Y > b[i].y && Y < (b[i].y)+150){
-                b[i].is = false;
-                delete b[i];
-                sound.play();
-                break;
+      function pop(x, y) {
+        for (let i = balloons.length - 1; i >= 0; i--) {
+          const b = balloons[i];
+          const dx = x - b.x, dy = y - b.y;
+          const rx = b.size / 2 + 8, ry = b.size * 0.6 + 8;
+          if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) {
+            pops.push({ x: b.x, y: b.y, r: b.size / 2, t: 0 });
+            balloons.splice(i, 1);
+            score++;
+            scoreEl.textContent = score;
+            if (score > best) {
+              best = score;
+              bestEl.textContent = best;
+              localStorage.setItem("balloon_best", best);
             }
+            try { sound.currentTime = 0; sound.play(); } catch (e) {}
+            return;
+          }
         }
-
-        /*
-        //звук
-        if (X > 0 && X < 50 && Y > 0 && Y < 75) {
-          mute = !mute;
-          if (mute) {
-            sound.src = "audio/fon.mp3";
-            sound.play();
-          } else sound.pause();
-        }
-        //смена фона
-        if (X > 0 && X < 50 && Y > 75 && Y < 150) {
-          n_f++;
-          if (n_f == 3) n_f = 0;
-          I_back.src = "img/fon/" + n_f + ".png";
-        }
-        */
+        score = Math.max(0, score - 1);
+        scoreEl.textContent = score;
       }
+
+      function handle(e) {
+        const t = e.touches ? e.touches[0] : e;
+        const rect = canvas.getBoundingClientRect();
+        pop(t.clientX - rect.left, t.clientY - rect.top);
+      }
+      canvas.addEventListener("mousedown", handle);
+      canvas.addEventListener("touchstart", e => { e.preventDefault(); handle(e); }, { passive: false });
     </script>
   </body>
 </html>

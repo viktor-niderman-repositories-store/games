@@ -1,4 +1,5 @@
-const { createApp } = Vue
+const { createApp } = Vue;
+
 createApp({
     data() {
         return {
@@ -8,90 +9,99 @@ createApp({
                 [1,4,7], [2,5,8], [3,6,9],
                 [1,5,9], [3,5,7],
             ],
-            appIsReload: false,
-            symbols: {
-                player: 'X',
-                pc: '◯',
-            },
+            symbols: { player: 'X', pc: '◯' },
             canMakeStep: true,
-        }
+            appIsReload: false,
+            banner: '',
+            score: { player: 0, pc: 0, draw: 0 },
+        };
+    },
+    computed: {
+        status() {
+            if (this.banner) return this.banner;
+            if (!this.canMakeStep) return 'Computer is thinking…';
+            return 'Your turn';
+        },
     },
     methods: {
-        getRandomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1) + min);
+        boardIsFull() {
+            return this.field.filter(v => v !== undefined).length >= 9;
         },
-        trySetCircleToCellToLine(p1, p2, p3, symbol) {
-            if ([p1, p2, p3].filter(el => this.field[el] === symbol).length === 2) {
-                let undef = [p1, p2, p3].find(el => this.field[el] === undefined);
-                if (undef) {
-                    this.field[undef] = this.symbols.pc;
-                    return true;
+        hasWin(symbol, board = this.field) {
+            return this.combinations.some(([a, b, c]) =>
+                board[a] === symbol && board[b] === symbol && board[c] === symbol
+            );
+        },
+        minimax(board, symbol, depth = 0, alpha = -Infinity, beta = Infinity) {
+            if (this.hasWin(this.symbols.pc, board)) return { score: 10 - depth };
+            if (this.hasWin(this.symbols.player, board)) return { score: depth - 10 };
+            const empty = [];
+            for (let i = 1; i <= 9; i++) if (board[i] === undefined) empty.push(i);
+            if (empty.length === 0) return { score: 0 };
+
+            const maximizing = symbol === this.symbols.pc;
+            const next = maximizing ? this.symbols.player : this.symbols.pc;
+            let best = { score: maximizing ? -Infinity : Infinity, index: empty[0] };
+            for (const i of empty) {
+                board[i] = symbol;
+                const { score } = this.minimax(board, next, depth + 1, alpha, beta);
+                board[i] = undefined;
+                if (maximizing) {
+                    if (score > best.score) best = { score, index: i };
+                    if (score > alpha) alpha = score;
+                } else {
+                    if (score < best.score) best = { score, index: i };
+                    if (score < beta) beta = score;
                 }
+                if (beta <= alpha) break;
             }
-            return false;
+            return best;
         },
-        trySetCircleFor(symbol) {
-            for (let i = 0; i < this.combinations.length; i++) {
-                if (this.trySetCircleToCellToLine(
-                    this.combinations[i][0],
-                    this.combinations[i][1],
-                    this.combinations[i][2],
-                    symbol
-                )) {
-                    return true;
-                }
-            }
-            return false;
-        },
-        makeCircleInRandomPlace() {
-            while (1) {
-                let q = this.getRandomInt(1,9);
-                if (this.field[q] !== undefined) continue;
-                this.field[q] = this.symbols.pc;
-                break;
-            }
+        makeComputerMove() {
+            const board = this.field.slice();
+            const { index } = this.minimax(board, this.symbols.pc);
+            this.field[index] = this.symbols.pc;
         },
         clickTo(n) {
-            if (!this.canMakeStep) return;
-            if (this.appIsReload || this.field[n]) return;
+            if (!this.canMakeStep || this.appIsReload || this.field[n]) return;
             this.field[n] = this.symbols.player;
-            if (this.checkWin(this.symbols.player)) return;
-            if(this.field.filter(v => v !== undefined).length >= 9) {
-                this.stopGame('Draw');
+            if (this.hasWin(this.symbols.player)) {
+                this.score.player++;
+                this.stopGame('You win!');
                 return;
             }
-            setTimeout(() => {
-                this.trySetCircleFor(this.symbols.pc) || this.trySetCircleFor(this.symbols.player) || this.makeCircleInRandomPlace();
-                setTimeout(() => {
-                    this.checkWin(this.symbols.pc);
-                    this.canMakeStep = true;
-                }, 100)
-            }, 300)
-
-        },
-        checkWin(symbol){
-            for (let i = 0; i < this.combinations.length; i++) {
-                if (this.field[this.combinations[i][0]] === symbol
-                    && this.field[this.combinations[i][1]] === symbol
-                    && this.field[this.combinations[i][2]] === symbol
-                ) {
-                    this.stopGame('The winner is: ' + symbol);
-                    return true;
-                }
+            if (this.boardIsFull()) {
+                this.score.draw++;
+                this.stopGame("It's a draw");
+                return;
             }
+            this.canMakeStep = false;
+            setTimeout(() => {
+                this.makeComputerMove();
+                setTimeout(() => {
+                    if (this.hasWin(this.symbols.pc)) {
+                        this.score.pc++;
+                        this.stopGame('Computer wins');
+                        return;
+                    }
+                    if (this.boardIsFull()) {
+                        this.score.draw++;
+                        this.stopGame("It's a draw");
+                        return;
+                    }
+                    this.canMakeStep = true;
+                }, 120);
+            }, 300);
         },
         stopGame(message) {
             this.appIsReload = true;
-            const alertDiv = document.querySelector('#alert');
+            this.banner = message;
             setTimeout(() => {
-              alertDiv.textContent = message
-              alertDiv.style.visibility = 'visible'
-            }, 1)
-            setTimeout(() => {
-              alertDiv.style.visibility = 'hidden'
+                this.banner = '';
                 this.field = [];
                 this.appIsReload = false;
-            }, 1000)
-        }
+                this.canMakeStep = true;
+            }, 1200);
+        },
     },
-}).mount('#app')
+}).mount('#app');

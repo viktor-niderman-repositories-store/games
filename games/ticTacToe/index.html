@@ -1,36 +1,41 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>ticTacToe</title>
+    <title>Tic-Tac-Toe</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="../../libs/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#15171c">
     <link rel="stylesheet" href="style.css">
     <script src="../../libs/vue.js"></script>
-
-</head>
+  </head>
   <body>
     <div id="app">
-      <div id="game">
-        <div class="game-row">
-          <div @click="clickTo(1)">{{field[1]}}</div>
-          <div @click="clickTo(2)">{{field[2]}}</div>
-          <div @click="clickTo(3)">{{field[3]}}</div>
+      <header class="hud">
+        <div class="status">{{ status }}</div>
+        <div class="score">
+          <span class="score-x">You {{ score.player }}</span>
+          <span class="score-draw">Draw {{ score.draw }}</span>
+          <span class="score-o">CPU {{ score.pc }}</span>
         </div>
-        <div class="game-row">
-          <div @click="clickTo(4)">{{field[4]}}</div>
-          <div @click="clickTo(5)">{{field[5]}}</div>
-          <div @click="clickTo(6)">{{field[6]}}</div>
-        </div>
-        <div class="game-row">
-          <div @click="clickTo(7)">{{field[7]}}</div>
-          <div @click="clickTo(8)">{{field[8]}}</div>
-          <div @click="clickTo(9)">{{field[9]}}</div>
-        </div>
+      </header>
+
+      <div class="board" :class="{ locked: !canMakeStep || appIsReload }">
+        <button
+          v-for="n in 9"
+          :key="n"
+          class="cell"
+          :class="{ 'cell-x': field[n] === symbols.player, 'cell-o': field[n] === symbols.pc }"
+          @click="clickTo(n)"
+        >
+          <span v-if="field[n]" class="mark">{{ field[n] }}</span>
+        </button>
+
+        <transition name="banner">
+          <div v-if="banner" class="banner">{{ banner }}</div>
+        </transition>
       </div>
     </div>
 
-    <div id="alert"></div>
     <script src="js.js"></script>
-</body>
+  </body>
 </html>

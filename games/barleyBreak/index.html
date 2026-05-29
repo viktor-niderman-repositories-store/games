@@ -2,26 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пятнашки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#15171c">
+    <title>Fifteen Puzzle</title>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         html, body {
-            background-color: rgb(59, 59, 59);
+            margin: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background: radial-gradient(circle at 50% 30%, #2a2f3a 0%, #15171c 100%);
+            color: #e8eaed;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100%;
+            overflow: hidden;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            width: min(90vmin, 480px);
+            font-size: clamp(0.9rem, 3.5vmin, 1.1rem);
+            letter-spacing: 0.04em;
+        }
+        .moves { font-variant-numeric: tabular-nums; color: #8ab4ff; }
+        button {
+            appearance: none;
+            border: none;
+            background: linear-gradient(160deg, #2d323d, #1c1f26);
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            letter-spacing: inherit;
+            padding: 0.55rem 1.1rem;
+            border-radius: 0.7rem;
+            cursor: pointer;
+            touch-action: manipulation;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: transform 0.12s ease, background 0.2s ease;
+        }
+        button:active {
+            transform: scale(0.96);
+            background: linear-gradient(160deg, #353b48, #23272f);
         }
         canvas {
-            width: 600px;
-            height: 600px;
+            display: block;
+            touch-action: none;
+            border-radius: 1.25rem;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            max-width: 100%;
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <br>
-    <p></p>
+    <div id="app">
+        <div class="hud">
+            <div class="moves">Moves: <span id="moves">0</span></div>
+            <button id="reset">New game</button>
+        </div>
+        <canvas id="canvas"></canvas>
+    </div>
     <script src="game.js"></script>
 </body>
 </html>

@@ -1,2 +1,2 @@
 # tic-tac-toe
-Моя игра в крестики-нолики)
+My tic-tac-toe game.

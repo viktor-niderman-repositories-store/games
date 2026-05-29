@@ -1,21 +1,86 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Snake</title>
     <link rel="stylesheet" href="../../libs/bootstrap.min.css">
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #111827;
+            color: #e5e7eb;
+            font-family: system-ui, -apple-system, sans-serif;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .wrap {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            gap: 14px;
+            box-sizing: border-box;
+        }
+        .hud {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        .score { font-variant-numeric: tabular-nums; }
+        .board {
+            position: relative;
+            touch-action: none;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        }
+        canvas { display: block; }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            color: white;
+            font-size: 1.6rem;
+        }
+        .overlay.show { display: flex; }
+        .btn-restart {
+            padding: 10px 22px;
+            border-radius: 999px;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .btn-restart:active { transform: scale(0.97); }
+        .hint { opacity: 0.55; font-size: 0.85rem; text-align: center; }
+    </style>
 </head>
 <body>
-<div class="d-flex justify-content-center flex-column">
-    <div class="text-center">
+<div class="wrap">
+    <div class="hud">
+        <div class="score">Score: <span id="score">0</span></div>
+        <button class="btn-restart" onclick="reload()">Restart</button>
+    </div>
+    <div class="board">
         <canvas id="canvas"></canvas>
+        <div class="overlay" id="overlay">
+            <div>Game Over</div>
+            <button class="btn-restart" onclick="reload()">Play again</button>
+        </div>
     </div>
-    <div class="text-center">
-        <button class="btn btn-info" onclick="reload()">Reload</button>
-    </div>
+    <div class="hint">Arrows / WASD &middot; swipe on mobile</div>
 </div>
-    <script src="js/index.js"></script>
+<script src="js/index.js"></script>
 </body>
 </html>
